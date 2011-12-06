@@ -29,5 +29,5 @@ decode(S, N) ->
 
 all_variants(S) ->
     lists:map(fun(N) ->
-            decode(S, N)
+            {N, decode(S, N)}
         end, lists:seq(0,25)).
