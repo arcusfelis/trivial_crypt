@@ -1,11 +1,11 @@
 -module(vigenere).
+-export([crypt/2, decrypt/2]).
 
 -define(IS_ULETTER(X), ((X >= $A) andalso (X =< $Z))).
 -define(IS_LLETTER(X), ((X >= $a) andalso (X =< $z))).
 -define(COUNT, ($Z - $A + 1)).
 
-% FIXME:
--compile([export_all]).
+
 
 square(X, Y) when ?IS_ULETTER(X), ?IS_ULETTER(Y) ->
     ((X + Y - (2*$A)) rem ?COUNT) + $A.
@@ -37,6 +37,8 @@ do_preprocess([H|T], Acc)
     when ?IS_LLETTER(H) ->
     NewH = $A - $a + H,
     do_preprocess(T, [NewH|Acc]); 
+do_preprocess([_H|T], Acc) ->
+    do_preprocess(T, Acc);
 do_preprocess([], Acc) ->
     lists:reverse(Acc).
 
