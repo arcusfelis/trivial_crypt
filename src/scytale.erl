@@ -1,5 +1,15 @@
 -module(scytale).
--export([crypt/2, decrypt/2]).
+-export([crypt/2, decrypt/2, hack/3, hack/1]).
+
+hack(Str) ->
+    hack(Str, 3, string:len(Str)).
+
+hack(Str, From, To) 
+    when From<To ->
+    io:format("~4B ~ts~n", [From, decrypt(Str, From)]),
+    hack(Str, From+1, To);
+hack(Str, To, To) ->
+    ok.
 
 crypt(Str, Key) 
     when Key>0 ->
