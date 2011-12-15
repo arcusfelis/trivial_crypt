@@ -1,8 +1,9 @@
 -module(scytale).
--export([crypt/2, decrypt/2, hack/3, hack/1]).
+-export([hack/1, crypt/2, decrypt/2, echo/2]).
+-compile([export_all]).
 
 hack(Str) ->
-    hack(Str, 3, string:len(Str)).
+    hack(Str, 2, string:len(Str)).
 
 hack(Str, From, To) 
     when From<To ->
@@ -23,23 +24,81 @@ decrypt(Str, Key)
     SplitedList = do_split(fix_string(Str, Key), [], Key),
     do_process(SplitedList, [], []).
 
+echo(Str, Key) ->
+    L = string:len(Str),
+    MaxInLine = ceiling(L / Key),
+    SplitedList = do_split(Str, [], MaxInLine),
+    do_echo(SplitedList, Key).
+
+do_echo([H|T], Key) ->
+    io:format("~ts~n", [H]),
+    do_echo(T, Key-1);
+do_echo([], Key)
+    when Key>0 ->
+    io:format("???~n"),
+    do_echo([], Key-1);
+do_echo([], 0) -> ok.
+    
+    
+% Key = 4
+%
+% x x x 
+% s s s
+% d d d
+% _ _ _
+
+% Key = 6
+%
+% XX
+% XS
+% SS
+% DD
+% D_
+% __
+
+
+%% Add whitespaces to the end of the SOURCE string.
+%% Str is an encrypted string.
 fix_string(Str, Key) ->
     L = string:len(Str),
-    BadStrCnt = L rem Key,
-    SStr = lists:reverse(Str),
-    do_fix(SStr, [], BadStrCnt, Key, Key).
+    case L rem Key of
+    0 ->
+        Str;
+    _ ->
+        Width = (L div Key) + 1,
+        SStr = lists:reverse(Str),
+        FullLen = Width * Key,
+        Remains = FullLen - L,
+        SuffixAdd = Remains rem Width,
+        Add = 
+            case SuffixAdd of
+            0 -> 0;
+            _ -> 1
+            end + Remains div Width,
 
-do_fix(T, Acc, Cnt, Rem, Rem)
+        io:format("Remains=~B Add=~B SAdd=~B Key=~B ~n", [Remains, Add, SuffixAdd, Key]),
+        do_fix(SStr, [], Remains, SuffixAdd, Add, Key, Key)
+    end.
+
+add(C, X, Acc)
+    when C>0 ->
+    add(C-1, X, [X|Acc]);
+add(_, _, Acc) ->
+    Acc.
+
+do_fix(T, Acc, Cnt, Suf=1, Add, Rem, Rem)
+    when Cnt>0, Rem>0, Add>0 ->
+    do_fix(T, add(Add, $ , Acc), Cnt-Add, Suf-1, Add-1, Rem-Add, Rem);
+do_fix(T, Acc, Cnt, Suf, Add, Rem, Rem)
+    when Cnt>0, Rem>0, Add>0 ->
+    do_fix(T, add(Add, $ , Acc), Cnt-Add, Suf-1, Add, Rem-Add, Rem);
+do_fix([H|T], Acc, Cnt, Suf, Add, Rem, OldRem)
     when Cnt>0, Rem>0 ->
-    do_fix(T, [$ |Acc], Cnt, Rem-1, Rem);
-do_fix([H|T], Acc, Cnt, Rem, OldRem)
-    when Cnt>0, Rem>0 ->
-    do_fix(T, [H|Acc], Cnt, Rem-1, OldRem);
-do_fix(T, Acc, Cnt, 0, OldRem)
+    do_fix(T, [H|Acc], Cnt, Suf, Add, Rem-1, OldRem);
+do_fix(T, Acc, Cnt, Suf, Add, 0, OldRem)
     when Cnt>0 ->
-    do_fix(T, Acc, Cnt-1, OldRem, OldRem);
-do_fix(T, Acc, 0, _, _OldRem)
-    ->
+    do_fix(T, Acc, Cnt, Suf, Add, OldRem, OldRem);
+do_fix(T, Acc, 0, _Suf, _Add, _Rem, _OldRem) ->
     lists:reverse(T, Acc).
     
 
@@ -85,5 +144,11 @@ decrypt_test_() ->
     ,?_assertEqual(D(C("HELPMEIAMUNDERATTA", 4), 4), "HELPMEIAMUNDERATTA  ")
     ].
 
+fix_string_test_() ->
+    F = fun fix_string/2,
+    [?_assertEqual(F("XXSDXSSD", 6),  "XXSD  XSSD  ")
+    ,?_assertEqual(F("XXSDDXSSD", 6), "XXSDD XSSD  ")
+    ,?_assertEqual(F("adgjmpsvybehknqtwzcfilorux", 11), "adgjmpsvy  behknqtwz  cfilorux   ")
+    ].
 
 -endif.
